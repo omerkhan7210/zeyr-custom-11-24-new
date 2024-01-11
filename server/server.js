@@ -26,6 +26,11 @@ app.use('/',cartRoutes);
 app.use('/',wishlistRoutes);
 app.use('/',checkoutRoutes);
 app.use('/',user_currency_preferences);
+// Serve barcode images
+app.use('/ordersbarcodeimages', express.static('ordersbarcodeimages/'));
+
+// Serve barcode images
+app.use('/qrCodes', express.static( 'qrCodes'));
 
 
 // Start the server

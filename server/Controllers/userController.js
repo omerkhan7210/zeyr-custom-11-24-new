@@ -1,5 +1,8 @@
 import pool from '../Db/database.js';
 import jwt from 'jsonwebtoken';
+import fs from 'fs';
+import path from 'path';
+import QRCode from 'qrcode';
 
 // JWT secret key
 const jwtSecret = 'secret-key';
@@ -42,7 +45,7 @@ const getUserId = async (email)=>{
       }
       // Assuming you have a 'users' table in your MySQL database
       // Replace this query with your own logic to fetch the user account details
-      const query = 'SELECT fname , lname , email FROM users WHERE email = ?';
+      const query = 'SELECT id,fname , lname , email ,qrcode  FROM users WHERE email = ?';
       pool.query(query, [email], (error, results) => {
         if (error) {
           console.error(error);
@@ -54,10 +57,23 @@ const getUserId = async (email)=>{
         }
   
         const user = results[0];
+        
+        // Create a folder for barcode images if it doesn't exist
+        const barcodeImagesFolder =  'qrCodes';
+        if (!fs.existsSync(barcodeImagesFolder)) {
+          fs.mkdirSync(barcodeImagesFolder);
+        }
+      
+        let accountPageLink = `https://zeyr.thealamgroup.com/my-zf/${user.id}`;
+        QRCode.toFile(`qrCodes/qr_${user.id}.png`,accountPageLink,(err)=>{
+          if(err) return console.log(err)
+      });
         res.status(200).json({
+          id:user.id,
           fname: user.fname,
           lname: user.lname,
           email: user.email,
+          qrcode: user.qrcode
         });
       });
     } catch (error) {
@@ -65,6 +81,31 @@ const getUserId = async (email)=>{
       res.status(401).json({ message: 'Invalid token' });
     }
   };
+
+  // Generate and save barcode images for all products
+const BarcodeImages =  async (req, res) => {
+  const orders = await getAllCompletedOrders();
+
+  // Create a folder for barcode images if it doesn't exist
+  const barcodeImagesFolder = path.join(__dirname, 'ordersbarcodeimages');
+  if (!fs.existsSync(barcodeImagesFolder)) {
+    fs.mkdirSync(barcodeImagesFolder);
+  }
+
+  // Loop through products and save barcode images
+  for (const product of orders) {
+    try {
+      const barcodeImageBuffer = await generateBarcodeImage(product.barcode_id);
+      const imagePath = path.join(barcodeImagesFolder, `barcode_${product.id}.png`);
+      fs.writeFileSync(imagePath, barcodeImageBuffer);
+    } catch (err) {
+      console.error('Error generating barcode image:', err);
+      // Handle error, you might want to skip this product or handle it differently
+    }
+  }
+
+  res.status(200).send('Barcode images generated and saved');
+};
   
   
   export const CreateAddress = async (req, res) => {

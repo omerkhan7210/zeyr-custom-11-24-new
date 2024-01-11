@@ -257,35 +257,27 @@ export const Signup = async (req, res) => {
   
        
  const userSignupEmail = `
- <div style="  width:100%; display:block;">
- <h1 style="text-align: center; color: black; font-family: Arial, sans-serif; font-size: 24px;margin:0 0 10px 0;">ZEYR FINERI</h1>
-   <h3 style="text-align: center; color: black; font-family: Arial, sans-serif; font-size: 20px; margin:0;">ACCOUNT CONFIRMATION</h3>
- 
- <div style="margin-top: 20px; display:flex;flex-direction:column; text-align:center; justify-content:center; align-items:center;">
-   <p style="color: black; font-family: Arial, sans-serif; font-size: 13px; text-align:center;">
-     Hi ${fname}!
-     <br> 
-     Welcome, your customer account is now active! The next time you shop with us, you can save time at checkout by logging into your account.<br>
-     Your OTP Code for account verification is ${otpCode}
-   </p>
- 
-   <a href="${hostLink}/shop" style="color: white; text-decoration: none; font-family: Arial, sans-serif; font-size: 16px; background:black;padding:0.7rem 2rem;">Shop Now</a>
-     
-   <p style="margin-top:10px;">Thank You,<br>ZEYR FINERI</p>
-   <br>
-   <ul style="list-style-type: none; padding-left: 0; display:flex; gap;1rem;">
-   <li style="margin-right: 10px; border-right:1px solid grey;">
-       <a href="${hostLink}/contact" style="background:black; color: white; text-decoration: none; font-family: Arial, sans-serif; serif;  font-size: 16px; padding:10px 1rem;">CONTACT US</a>
-     </li>
-     <li style="margin-right: 10px; border-right:1px solid grey;">
-       <a href="${hostLink}/shipping-returns" style="background:black; color: white; text-decoration: none; font-family: Arial, sans-serif; serif;  font-size: 16px; padding:10px 1rem;">SHIPPING &amp; RETURNS</a>
-     </li>
-     <li>
-       <a href="${hostLink}/careers" style="background:black; color: white; text-decoration: none; font-family: Arial, sans-serif; serif;  font-size: 16px; padding:10px 1rem;">CAREERS</a>
-     </li>
-   </ul>
- </div>
- </div>
+
+ <div class="email-template">
+ <div class="header">
+     <h1>ZEYR FINERI</h1>
+     <h3>ACCOUNT CONFIRMATION</h3>
+   </div>
+   <div class="body">
+     <p>Hi ${fname}!</p>
+     <p>Welcome, your customer account is now active! The next time you shop with us, you can save time at checkout by logging into your account.</p>
+     <p>Your OTP Code for account verification is ${otpCode}</p>
+     <a href="${hostLink}/shop" class="button">Shop Now</a>
+   </div>
+   <div class="footer">
+     <p>Thank You,<br>ZEYR FINERI</p>
+     <ul>
+       <li><a href="${hostLink}/contact">CONTACT US</a></li>
+       <li><a href="${hostLink}/shipping-returns">SHIPPING &amp; RETURNS</a></li>
+       <li><a href="${hostLink}/careers">CAREERS</a></li>
+     </ul>
+   </div>
+</div>
  `;
         // Send the OTP code to the user's email (using your preferred email sending method/library)
         sendOtpCodeToEmail(email, otpCode,"Customer Account Confirmation",userSignupEmail); // Replace with your email sending logic

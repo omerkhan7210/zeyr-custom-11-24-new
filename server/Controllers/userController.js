@@ -45,7 +45,7 @@ const getUserId = async (email)=>{
       }
       // Assuming you have a 'users' table in your MySQL database
       // Replace this query with your own logic to fetch the user account details
-      const query = 'SELECT id,fname , lname , email ,qrcode  FROM users WHERE email = ?';
+      const query = 'SELECT id,fname , lname , email ,qrcode,date_registered  FROM users WHERE email = ?';
       pool.query(query, [email], (error, results) => {
         if (error) {
           console.error(error);
@@ -73,7 +73,8 @@ const getUserId = async (email)=>{
           fname: user.fname,
           lname: user.lname,
           email: user.email,
-          qrcode: user.qrcode
+          qrcode: user.qrcode,
+          regdate: user.date_registered
         });
       });
     } catch (error) {
@@ -81,6 +82,42 @@ const getUserId = async (email)=>{
       res.status(401).json({ message: 'Invalid token' });
     }
   };
+
+// Fetch memberships
+export const GetMembershipDetails = async (req, res) => {
+  
+  const token = req.headers.authorization.split(' ')[1]; // Extract the JWT token from the authorization header
+  
+  // Verify the JWT token and extract the user information
+  const decoded = jwt.verify(token, jwtSecret);
+  let email = ''
+  if(decoded.userEmail){
+   email = decoded.userEmail
+  }else{
+   email = decoded.email
+  }
+
+  pool.query(`SELECT m.name , m.price , m.duration_months , m.apparel_discount as discount,
+            um.membership_id , um.subscription_date , um.expiration_date  
+            FROM memberships m , user_members um , users u where u.id = um.user_id and m.membership_id = um.membership_id
+            and u.email = ?`
+  , [email],(err, results) => {
+    if (err) {
+      console.error('Error fetching memberships:', err);
+      res.status(500).json({ error: 'Error fetching memberships' });
+    } else {
+      const result = results[0]
+      if(result){
+          res.json({results: result});
+      }else{
+          res.json({result : false});
+      }
+      
+    
+    }
+  });
+
+};
 
   // Generate and save barcode images for all products
 const BarcodeImages =  async (req, res) => {

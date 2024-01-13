@@ -330,6 +330,171 @@ export const Signup = async (req, res) => {
     }
   };
   
+
+  export const UpdateAccountDetails = async (req,res)=>{
+    const token = req.headers.authorization.split(' ')[1]; // Extract the JWT token from the authorization header
+  
+    // Verify the JWT token and extract the user information
+    const decoded = jwt.verify(token, jwtSecret);
+    let decoded_email = ''
+    if(decoded.userEmail){
+      decoded_email = decoded.userEmail
+    }else{
+      decoded_email = decoded.email
+    }
+    const { fname,email,lname,password } = req.body;
+
+       // Hash the password
+       const hashedPassword = await hash(password, 10);
+    if(decoded_email != email){
+        // Generate OTP code (4-digit code)
+        const otpCode = generateOTP();
+
+        // Store the OTP code in a temporary object
+        otpCodes[email] = otpCode;
+  
+       
+        const userSignupEmail = `
+
+        <div class="email-template">
+        <div class="header">
+            <h1>ZEYR FINERI</h1>
+            <h3>EMAIL CHANGE</h3>
+          </div>
+          <div class="body">
+            <p>Hi ${fname}!</p>
+            <p>Welcome, your customer account is now active! The next time you shop with us, you can save time at checkout by logging into your account.</p>
+            <p>Your OTP Code for account email update is ${otpCode}</p>
+            <a href="${hostLink}/shop" class="button">Shop Now</a>
+          </div>
+          <div class="footer">
+            <p>Thank You,<br>ZEYR FINERI</p>
+            <ul>
+              <li><a href="${hostLink}/contact">CONTACT US</a></li>
+              <li><a href="${hostLink}/shipping-returns">SHIPPING &amp; RETURNS</a></li>
+              <li><a href="${hostLink}/careers">CAREERS</a></li>
+            </ul>
+          </div>
+        </div>
+        `;
+        // Send the OTP code to the user's email (using your preferred email sending method/library)
+        sendOtpCodeToEmail(email, otpCode,"Email Change",userSignupEmail); // Replace with your email sending logic
+
+        return res.status(200).json({ message: 'OTP sent',success:false });
+    }else{
+      if(password === ""){
+        pool.query(
+          'update users set fname = ?, lname = ?, email = ?, updation_date = ? where email = ?',
+          [fname, lname, email,new Date(), decoded_email],
+          (error) => {
+            if (error) {
+              console.error(error);
+              return res.status(500).json({ message: 'Server error' });
+            }
+            
+          }
+        );
+      }else{
+        pool.query(
+          'update users set fname = ?, lname = ?, email = ?, password = ?, updation_date = ? where email = ?',
+          [fname, lname, email, hashedPassword,new Date(), decoded_email],
+          (error) => {
+            if (error) {
+              console.error(error);
+              return res.status(500).json({ message: 'Server error' });
+            }
+            
+          }
+        );
+      }
+      
+
+      return res.status(200).json({ message: 'Account details updated successfully',success:true });
+    }
+  }
+
+  // In your server.js or routes file
+
+// Endpoint for checking current password
+export const VerifyPassword =  async (req, res) => {
+  const { currentPassword } = req.body;
+  const token = req.headers.authorization.split(' ')[1]; // Extract the JWT token from the authorization header
+  
+    // Verify the JWT token and extract the user information
+    const decoded = jwt.verify(token, jwtSecret);
+    let decoded_email = ''
+    if(decoded.userEmail){
+      decoded_email = decoded.userEmail
+    }else{
+      decoded_email = decoded.email
+    }
+    pool.query('SELECT * FROM users WHERE email = ?', [decoded_email], async (error, results) => {
+      if (error) {
+        console.error(error);
+        return res.status(500).json({ message: 'Server error' });
+      }
+
+      let user;
+      // Check if email already exists
+      if (results.length > 0) {
+        user = results[0];
+      }
+ 
+      try {
+        const isPasswordCorrect = await compare(currentPassword, user.password);
+        if (isPasswordCorrect) {
+          return res.json({ success: true });
+        } else {
+          return res.json({ success: false });
+        }
+      } catch (error) {
+        console.error('Error comparing passwords:', error);
+        return res.status(500).json({ success: false, error: 'Server error' });
+      }
+      
+});
+};
+
+// Route for updating account details
+export const AccountDetailsOTP = async (req, res) => {
+  try {
+   
+    const { fname,lname,email,password, otpCode } = req.body;
+
+    // Check if the OTP code is valid for the given email
+    if (otpCodes[email] === otpCode) {
+      // Clear the OTP code from temporary storage
+      delete otpCodes[email];
+
+       // Hash the password
+      const hashedPassword = await hash(password, 10);
+       // Insert the user into the database
+       pool.query(
+        'update users set fname = ?, lname = ?, email = ?, password = ?',
+        [fname, lname, email, hashedPassword],
+        (error) => {
+          if (error) {
+            console.error(error);
+            return res.status(500).json({ message: 'Server error' });
+          }
+          
+        }
+      );
+
+      // Generate JWT token
+      const token = jwt.sign({ email }, jwtSecret , { expiresIn: '2h' });
+
+      return res.status(200).json({ message: 'OTP verification successful', token });
+    } else {
+      return res.status(400).json({ message: 'Invalid OTP code' });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+
   // Route for user login
   export const Login = async (req, res) => {
     try {

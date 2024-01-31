@@ -9,6 +9,8 @@ export const GenerateUUID =  (req, res) => {
     res.cookie('userId', uniqueIdentifier, { httpOnly: true }); // You can set other options as needed
     return res.status(200).json({message:uniqueIdentifier});
   };
+
+  
   export const InsertCartItems = async (req, res) => {
     const { uuid, prod_id,variations,quantity } = req.body;
 

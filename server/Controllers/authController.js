@@ -2,11 +2,13 @@ import { hash, compare } from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
 import pool from '../Db/database.js';
+import qr from 'qrcode'
+import fs from 'fs'
 
 // JWT secret key
 const jwtSecret = 'secret-key';
 
-const hostLink = "https://zeyrcustom.noorularfeen.com" 
+const hostLink = "https://zeyr.thealamgroup.com" 
 
 function sendOtpCodeToEmail(email,otpCode,subj,htmlEmailTemplate){
   
@@ -48,15 +50,6 @@ function generateOTP() {
   return otp;
 }
 
-async function createTable(query) {
-  
-  pool.query(query, (error, results, fields) => {
-    if (error) {
-      console.error('Error creating "addresses" table:', error);
-    } else {
-    }
-  });
-}
 
 // NOTIFIED FORM 
 export const NotifiedUsers = async (req, res) => {
@@ -295,7 +288,7 @@ export const Signup = async (req, res) => {
   // Route for verifying OTP
   export const VerifyOtp = async (req, res) => {
     try {
-      const { fname,lname,email,password, otpCode } = req.body;
+      const { fname,lname,email,password, otpCode,isAdmin,selectedRole } = req.body;
       
       // Check if the OTP code is valid for the given email
       if (otpCodes[email] === otpCode) {
@@ -304,11 +297,17 @@ export const Signup = async (req, res) => {
   
          // Hash the password
         const hashedPassword = await hash(password, 10);
+        let sql = ''
+        if(!isAdmin){
+          sql = 'INSERT INTO users (fname, lname, email, password,role) VALUES (?, ?, ?, ?,?)'
+        }else{
+          sql = 'INSERT INTO admins (fname, lname, email, password,role) VALUES (?, ?, ?, ?,?)'
+        }
          // Insert the user into the database
          pool.query(
-          'INSERT INTO users (fname, lname, email, password) VALUES (?, ?, ?, ?)',
-          [fname, lname, email, hashedPassword],
-          (error) => {
+          sql,
+          [fname, lname, email, hashedPassword,selectedRole],
+          (error,results) => {
             if (error) {
               console.error(error);
               return res.status(500).json({ message: 'Server error' });
@@ -316,7 +315,7 @@ export const Signup = async (req, res) => {
             
           }
         );
-  
+        
         // Generate JWT token
         const token = jwt.sign({ email }, jwtSecret , { expiresIn: '2h' });
   

@@ -1,6 +1,6 @@
 import express from 'express';
 import { CompleteOrder, CreateCheckoutAddress, CreateOrder, RemoveOrder, RetrieveAShippingMethod,
-     RetrieveCheckoutAddress, RetrieveCheckoutAddressBId, RetrieveShippingMethods, SelectCompletedOrder, SelectOrder } from '../Controllers/checkoutController.js';
+     RetrieveCheckoutAddress, RetrieveCheckoutAddressBId, RetrieveShippingMethods, SelectCompletedOrder, SelectOrder, UpdateOrderStatus } from '../Controllers/checkoutController.js';
 
 const router = express.Router();
 
@@ -14,6 +14,7 @@ router.get('/fetch-order',SelectOrder);
 router.get('/fetch-completed-order',SelectCompletedOrder);
 router.post('/complete-order',CompleteOrder);
 router.delete('/remove-order/:orderID',RemoveOrder);
+router.post('/updateOrderStatus',UpdateOrderStatus)
 
 
 export default router;

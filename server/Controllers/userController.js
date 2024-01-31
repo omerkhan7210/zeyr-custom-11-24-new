@@ -34,7 +34,7 @@ const getUserId = async (email)=>{
   export const UserAccountDetails = async (req, res) => {
     try {
       const token = req.headers.authorization.split(' ')[1]; // Extract the JWT token from the authorization header
-  
+           
       // Verify the JWT token and extract the user information
       const decoded = jwt.verify(token, jwtSecret);
       let email = ''
@@ -45,7 +45,7 @@ const getUserId = async (email)=>{
       }
       // Assuming you have a 'users' table in your MySQL database
       // Replace this query with your own logic to fetch the user account details
-      const query = 'SELECT id,fname , lname , email ,qrcode,date_registered  FROM users WHERE email = ?';
+      const query = 'SELECT id,fname , lname , email ,date_registered  FROM users WHERE email = ?';
       pool.query(query, [email], (error, results) => {
         if (error) {
           console.error(error);
@@ -57,29 +57,23 @@ const getUserId = async (email)=>{
         }
   
         const user = results[0];
-        
-        // Create a folder for barcode images if it doesn't exist
-        const barcodeImagesFolder =  'qrCodes';
-        if (!fs.existsSync(barcodeImagesFolder)) {
-          fs.mkdirSync(barcodeImagesFolder);
-        }
       
-        let accountPageLink = `https://zeyr.thealamgroup.com/my-zf/${user.id}`;
-        QRCode.toFile(`qrCodes/qr_${user.id}.png`,accountPageLink,(err)=>{
-          if(err) return console.log(err)
-      });
         res.status(200).json({
           id:user.id,
           fname: user.fname,
           lname: user.lname,
           email: user.email,
-          qrcode: user.qrcode,
           regdate: user.date_registered
         });
       });
     } catch (error) {
-      console.error(error);
-      res.status(401).json({ message: 'Invalid token' });
+        // Check if the error is due to a malformed JWT
+    if (error instanceof jwt.JsonWebTokenError) {
+      return res.status(401).json({ message: 'Malformed JWT' });
+    }
+
+    // For other errors, you can handle them accordingly
+    res.status(401).json({ message: 'Invalid token' });
     }
   };
 

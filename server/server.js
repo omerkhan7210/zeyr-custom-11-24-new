@@ -17,6 +17,7 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(bodyParser.json());
 app.use('/uploads', express.static('uploads/'));
+app.use('/productBarCodes', express.static('productBarCodes/'));
 
 app.use('/', userApiRoutes);
 app.use('/', apiRoutes);

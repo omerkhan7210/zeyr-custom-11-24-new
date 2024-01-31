@@ -1,6 +1,7 @@
 import pool from '../Db/database.js';
 import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
+import {hash} from 'bcrypt'
 import { storedCurrencyExchange } from './currencyMethods.js';
 
 const getUserId = async (email)=>{
@@ -160,37 +161,67 @@ pool.query("SELECT * FROM products WHERE id = ?", [prodId], (prodError, prodResu
   }
 
   if (prodResults.length === 0) {
-    console.error("product not found for prod_id:", prodId);
-    reject("Error getting product");
-    return;
-  }
+    // Product not found in products table, fetch from memberships table
+    const getMembershipQuery = "SELECT * FROM memberships WHERE membership_id = ?";
+    pool.query(getMembershipQuery, [prodId], (membershipError, membershipResult) => {
+      if (membershipError) {
+        reject(membershipError);
+        return;
+      }
 
-  const product = prodResults[0];
-  resolve(product);
+      if (membershipResult.length === 0) {
+        // Product not found in memberships table either
+        reject("Product not found");
+        return;
+      }
+
+      const membership = membershipResult[0];
+      resolve(membership);
+    });
+  } else {
+    // Product found in products table
+    const product = prodResults[0];
+    resolve(product);
+  }
 })
 })
 }
 
-const getProduct = async (id)=>{
+const getProduct = (productId) => {
   return new Promise((resolve, reject) => {
-pool.query("SELECT * FROM products WHERE id = ?", [id], (prodError, prodResults) => {
-  if (prodError) {
-    console.error("Error retrieving product:", prodError);
-    reject("Error getting product");
-    return;
-  }
+    const getProductQuery = "SELECT * FROM products WHERE id = ?";
+    pool.query(getProductQuery, [productId], (error, productResult) => {
+      if (error) {
+        reject(error);
+        return;
+      }
 
-  if (prodResults.length === 0) {
-    console.error("product not found for prod_id:", id);
-    reject("Error getting product");
-    return;
-  }
+      if (productResult.length === 0) {
+        // Product not found in products table, fetch from memberships table
+        const getMembershipQuery = "SELECT * FROM memberships WHERE membership_id = ?";
+        pool.query(getMembershipQuery, [productId], (membershipError, membershipResult) => {
+          if (membershipError) {
+            reject(membershipError);
+            return;
+          }
 
-  const product = prodResults[0];
-  resolve(product);
-})
-})
-}
+          if (membershipResult.length === 0) {
+            // Product not found in memberships table either
+            reject("Product not found");
+            return;
+          }
+
+          const membership = membershipResult[0];
+          resolve(membership);
+        });
+      } else {
+        // Product found in products table
+        const product = productResult[0];
+        resolve(product);
+      }
+    });
+  });
+};
 
 const getBAddress = async (id)=>{
   return new Promise((resolve, reject) => {
@@ -255,11 +286,15 @@ const getShipping= async (id)=>{
         
 const sendOrderConfirmationEmail = async (email, subj, orderData,productData,userData,shippingData)=> {
  
-  const echangerate = await storedCurrencyExchange();
+  //const echangerate = await storedCurrencyExchange();
   
-  const convertedPrice = echangerate*productData.price;
-  const convertedTPrice = echangerate*shippingData.price;
-  const convertedTPriceS = echangerate*orderData.total_price_with_shipping;
+  // const convertedPrice = echangerate*productData.price;
+  // const convertedTPrice = echangerate*shippingData.price;
+  // const convertedTPriceS = echangerate*orderData.total_price_with_shipping;
+
+  const convertedPrice = productData.price;
+  const convertedTPrice = shippingData.price;
+  const convertedTPriceS = orderData.total_price_with_shipping;
 // Format the order data into HTML
 const formattedOrderHTML = `
 <p>Thank you for your order!</p>
@@ -360,19 +395,42 @@ export const CreateCheckoutAddress = async (req, res) => {
   try {
     const { email, firstName, lastName, company, addressLine1, addressLine2, city, country, zipCode, phone } = req.body;
 
-    let userId = '';
-
+    // Check if the user already exists based on the email
     pool.query('SELECT * FROM users WHERE email = ?', [email], async (error, results) => {
       if (error) {
         console.error(error);
         return res.status(500).json({ message: 'Server error' });
       }
-
+    
       if (results.length > 0) {
-        userId = await getUserId(email);
-      } else {
+        // User exists, get the user ID
+        const userId = await getUserId(email);
+    
+        // Check if the address already exists
+        const checkAddressQuery = 'SELECT * FROM addresses WHERE user_id = ? AND addressLine1 = ? AND addressLine2 = ? AND city = ? AND country = ? AND zipCode = ? AND phone = ?';
+        const checkAddressValues = [userId, addressLine1, addressLine2, city, country, zipCode, phone];
+    
+        pool.query(checkAddressQuery, checkAddressValues, async (checkAddressError, checkAddressResults) => {
+          if (checkAddressError) {
+            console.error(checkAddressError);
+            return res.status(500).json({ message: 'Server error' });
+          }
+    
+          if (checkAddressResults.length > 0) {
+            
+    const token = jwt.sign({ email }, jwtSecret, { expiresIn: '24h' });
+
+    res.cookie('checkoutInfoToken', token, { httpOnly: true });
+    res.status(201).json({ message: 'Checkout Address added successfully', address: checkAddressResults, token });
+           
+          } else {
+            // Address does not exist, insert the new address
+            insertAddressAndRespond(userId, email, firstName, lastName, company, addressLine1, addressLine2, city, country, zipCode, phone, res);
+          }
+        });
+      }else {
         const randomPassword = Math.random().toString(36).slice(2);
-        const hashedPassword = await bcrypt.hash(randomPassword, 10);
+        const hashedPassword = await hash(randomPassword, 10);
 
         const createUserQuery = 'INSERT INTO users (email, fname, lname, password) VALUES (?, ?, ?, ?)';
         pool.query(createUserQuery, [email, firstName, lastName, hashedPassword], async (createUserError, createUserResults) => {
@@ -382,39 +440,45 @@ export const CreateCheckoutAddress = async (req, res) => {
           }
 
           sendUserInfoToEmail(email, lastName, firstName, randomPassword);
-          userId = createUserResults.insertId;
+          userId = await createUserResults.insertId;
 
-          const addressQuery = 'INSERT INTO addresses (user_id, email, firstName, lastName, company, addressLine1, addressLine2, city, country, zipCode, phone) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
-          pool.query(addressQuery, [userId, email, firstName, lastName, company, addressLine1, addressLine2, city, country, zipCode, phone], (addressError, addressResults) => {
-            if (addressError) {
-              console.error(addressError);
-              return res.status(500).json({ message: 'Server error' });
-            }
-
-            const newAddress = {
-              _id: addressResults.insertId,
-              firstName,
-              lastName,
-              company,
-              addressLine1,
-              addressLine2,
-              city,
-              country,
-              zipCode,
-              phone
-            };
-
-            const token = jwt.sign({ email }, jwtSecret, { expiresIn: '24h' });
-            res.cookie('checkoutInfoToken', token, { httpOnly: true });
-            res.status(201).json({ message: 'Checkout Address added successfully', address: newAddress, token });
-          });
+          // Insert the address after creating the user
+          insertAddressAndRespond(userId, email, firstName, lastName, company, addressLine1, addressLine2, city, country, zipCode, phone, res);
         });
-      }
+      } 
     });
   } catch (error) {
     console.error(error);
     res.status(401).json({ message: 'Invalid token' });
   }
+};
+
+const insertAddressAndRespond = (userId, email, firstName, lastName, company, addressLine1, addressLine2, city, country, zipCode, phone, res) => {
+  const addressQuery = 'INSERT INTO addresses (user_id, email, firstName, lastName, company, addressLine1, addressLine2, city, country, zipCode, phone) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
+  pool.query(addressQuery, [userId, email, firstName, lastName, company, addressLine1, addressLine2, city, country, zipCode, phone], (addressError, addressResults) => {
+    if (addressError) {
+      console.error(addressError);
+      return res.status(500).json({ message: 'Server error' });
+    }
+
+    const newAddress = {
+      _id: addressResults.insertId,
+      firstName,
+      lastName,
+      company,
+      addressLine1,
+      addressLine2,
+      city,
+      country,
+      zipCode,
+      phone
+    };
+
+    const token = jwt.sign({ email }, jwtSecret, { expiresIn: '24h' });
+
+    res.cookie('checkoutInfoToken', token, { httpOnly: true });
+    res.status(201).json({ message: 'Checkout Address added successfully', address: newAddress, token });
+  });
 };
 
   // Route for fetching addresses for the logged-in user
@@ -442,7 +506,10 @@ export const CreateCheckoutAddress = async (req, res) => {
         res.status(200).json({ addresses: results });
       });
     } catch (error) {
-      console.error(error);
+            // Check if the error is due to a malformed JWT
+    if (error instanceof jwt.JsonWebTokenError) {
+      return res.status(401).json({ message: 'Malformed JWT' });
+    }
       res.status(401).json({ message: 'Invalid token' });
     }
   };
@@ -471,7 +538,7 @@ export const CreateCheckoutAddress = async (req, res) => {
 // Define a route to fetch shipping methods
 export const RetrieveShippingMethods = async (req, res) => {
   try {
-    const exchangeRate = await storedCurrencyExchange();
+    //const exchangeRate = await storedCurrencyExchange();
   
     const query = 'SELECT * FROM shipping_methods';
 
@@ -483,7 +550,7 @@ export const RetrieveShippingMethods = async (req, res) => {
         // Multiply prices by the exchange rate
         const updatedResults = results.map((result) => {
           const updatedResult = { ...result };
-          updatedResult.price *= exchangeRate;
+          //updatedResult.price *= exchangeRate;
           // You may need to update other price-related fields if necessary
 
           return updatedResult;
@@ -502,7 +569,7 @@ export const RetrieveAShippingMethod = async (req, res) => {
   try {
     const shippingMethodsId = req.params.shippingMethodId;
 
-    const exchangeRate = await storedCurrencyExchange();
+    //const exchangeRate = await storedCurrencyExchange();
   
     const query = 'SELECT * FROM shipping_methods where id = ?';
 
@@ -514,7 +581,7 @@ export const RetrieveAShippingMethod = async (req, res) => {
         // Multiply prices by the exchange rate
         const updatedResults = results.map((result) => {
           const updatedResult = { ...result };
-          updatedResult.price *= exchangeRate;
+          //updatedResult.price *= exchangeRate;
           // You may need to update other price-related fields if necessary
 
           return updatedResult;
@@ -542,19 +609,19 @@ function formatOrderId(orderId, length) {
 export const CreateOrder = async (req, res) => {
   try {
     const { orderid, email, totalPrice, totalPriceWithShipping, cart_items_id, shippingMethodId } = req.body;
-    const userId = await getUserId(email);
+     const userId = await getUserId(email);
     const cartItemsId = await getCartItemId(cart_items_id);
     const bId = await getBAddressId(email);
 
-    if (storedCurrencyCode !== 'USD') {
-      try {
-        const exchangeRate = await storedCurrencyExchange2(); // Corrected: added parentheses for function call
-        totalPrice *= exchangeRate;
-        totalPriceWithShipping *= exchangeRate;
-      } catch (error) {
-        console.error('Error fetching exchange rate:', error);
-      }
-    }
+    // if (storedCurrencyCode !== 'USD') {
+    //   try {
+    //     const exchangeRate = await storedCurrencyExchange2(); // Corrected: added parentheses for function call
+    //     totalPrice *= exchangeRate;
+    //     totalPriceWithShipping *= exchangeRate;
+    //   } catch (error) {
+    //     console.error('Error fetching exchange rate:', error);
+    //   }
+    // }
     
     // Step 2: Insert the order with the retrieved user ID
     const orderResult = await poolQueryAsync(
@@ -595,6 +662,7 @@ const poolQueryAsync = (query, values) => {
 
   // Define a route to fetch shipping methods
 export const SelectOrder =  async (req, res) => {
+  const orderId = req.query.orderId
    try {
 
         const token = req.headers.authorization.split(' ')[1]; 
@@ -607,8 +675,8 @@ export const SelectOrder =  async (req, res) => {
         }
       const userId = await getUserId(email);
      
-      const query = 'SELECT * FROM orders WHERE payment_status = "pending" and user_id = ?';
-      pool.query(query, [userId],async (error, results) => {
+      const query = 'SELECT * FROM orders WHERE payment_status = "pending" and user_id = ? and order_id = ?';
+      pool.query(query, [userId,orderId],async (error, results) => {
         if (error) {
           console.error(error);
           return res.status(500).json({ message: 'Server error' });
@@ -636,7 +704,7 @@ export const SelectCompletedOrder = async (req, res) => {
 
     const userId = await getUserId(email);
     const query = 'SELECT * FROM orders WHERE payment_status = "completed" and user_id = ?';
-    
+
     pool.query(query, [userId], async (error, results) => {
       if (error) {
         console.error(error);
@@ -656,6 +724,7 @@ export const SelectCompletedOrder = async (req, res) => {
               const prodId = productResult.prod_id;
               const selectedVars = productResult.selectedVariations;
               const quantity = productResult.prod_quantity;
+
 
               const product = await getProduct(prodId);
               const productsWithVarsAndQuantity = {
@@ -685,6 +754,7 @@ export const SelectCompletedOrder = async (req, res) => {
 
 const uniqueOrdersArray = Array.from(new Set(combinedOrder.map(JSON.stringify)), JSON.parse);
 
+
         res.status(200).json({ orders: uniqueOrdersArray });
       } catch (error) {
         console.error('Error:', error);
@@ -696,13 +766,13 @@ const uniqueOrdersArray = Array.from(new Set(combinedOrder.map(JSON.stringify)),
     res.status(401).json({ message: 'Invalid token' });
   }
 };
-
-
  
 // API route to insert completed orders
 export const CompleteOrder = async  (req, res) => {
-  const { formattedOrderId, order,userUUID } = req.body;
-const orderId = order.order_id;
+  const { formattedOrderId, order,userUUID,paymentMethod } = req.body;
+
+  try {
+    const orderId = order.order_id;
 const userId = order.user_id;
 const cartItemId = order.cart_items_id;
 const prodId = await getProductItemId(cartItemId)
@@ -712,9 +782,9 @@ const billingId = order.b_address_id;
 const shippingId = order.shipping_methods_id; 
 
   // SQL query to insert a completed order
-  const insertQuery = 'INSERT INTO completed_orders (formatted_order_id, order_id,prod_id,selectedVariations,prod_quantity) VALUES (? ,?, ?,?,?)';
+  const insertQuery = 'INSERT INTO completed_orders (formatted_order_id, order_id,prod_id,selectedVariations,prod_quantity,paymentmethod) VALUES (?,? ,?, ?,?,?)';
 
-  pool.query(insertQuery, [formattedOrderId, orderId,prodId,selectedVars,quantity],async (error, results) => {
+  pool.query(insertQuery, [formattedOrderId, orderId,prodId,selectedVars,quantity,paymentMethod],async (error, results) => {
     if (error) {
       console.error(error);
       res.status(500).json({ message: 'Failed to insert completed order' });
@@ -724,7 +794,6 @@ const shippingId = order.shipping_methods_id;
       const product = await getCartItem(cartItemId);
       const billingAddress = await getBAddress(billingId);
       const shippingMethod = await getShipping(shippingId);
-      await removeCartItems(userUUID);
       await sendOrderConfirmationEmail(userEmail, 'Order Confirmation', order,product,billingAddress,shippingMethod);
      
       // // SQL query to update the payment status to "completed" in the orders table
@@ -736,21 +805,18 @@ const shippingId = order.shipping_methods_id;
               res.status(500).json({ message: 'Failed to update payment status' });
             } else {
             const token = jwt.sign({ userEmail }, jwtSecret , { expiresIn: '2h' });
-
+            await removeCartItems(userUUID);
             res.cookie('token', token, { httpOnly: true });
             res.status(200).json({ message: 'Completed order inserted successfully',token });
             }
        })
   }
   });
-};
-
-// API route to insert completed orders
-export const RemoveCartItemsApi = async  (req, res) => {
-  const { userUUID } = req.body;
-      await removeCartItems(userUUID);
-      res.status(200).json({ message: 'Removed CART items' });
+  } catch (error) {
+    console.error(error)
   }
+
+};
 
   export const RemoveOrder = async (req,res)=>{
     const orderid = req.params.orderID
@@ -762,6 +828,25 @@ export const RemoveCartItemsApi = async  (req, res) => {
     })
     
   }
+
+  export const UpdateOrderStatus = async (req, res) => {
+   const { orderId, newOrderStatus } = req.body;
+    pool.query("UPDATE completed_orders SET order_status = ? WHERE order_id = ?", [newOrderStatus, orderId], (err, result) => {
+      if (err) {
+        return res.status(500).json({ error: err });
+      }
+      if(newOrderStatus === 'completed'){
+        pool.query("UPDATE orders SET payment_status = ? WHERE order_id = ?", [newOrderStatus, orderId], (err, result) => {
+          if (err) {
+            return res.status(500).json({ error: err });
+          }
+        });
+      }
+  
+      res.status(200).json({ message: "success" });
+    });
+  };
+  
 
 // Function to check and send reminder emails
 async function checkAndSendPaymentReminders() {

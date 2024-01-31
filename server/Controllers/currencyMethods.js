@@ -36,62 +36,62 @@ const filterRatesMethod = async () => {
             const lastFetchedDate = res[0].fetched_at.toISOString().split('T')[0];
     
             // If data was fetched today, use the existing data
-            if (today === lastFetchedDate) {
+           // if (today === lastFetchedDate) {
               const ratesMap = res.reduce((acc, rate) => {
                 acc[rate.currency_code] = rate.exchange_rate;
                 return acc;
               }, {});
     
               resolve(ratesMap);
-            } else {
-              // If data was not fetched today, fetch new rates from the API
-              try {
+            // } else {
+            //   // If data was not fetched today, fetch new rates from the API
+            //   try {
   
-                const getProductQuery = "Delete FROM exchange_rates";
+            //     const getProductQuery = "Delete FROM exchange_rates";
         
-                pool.query(getProductQuery, async (error, res) => {
-                  if (error) {
-                    throw new Error('Failed to fetch data');
-                  }
-                })
-                const apiUrl = 'http://api.exchangeratesapi.io/v1/latest?access_key=d11c282a5d994f8d18ee4b288f8a81cd';
-                const response = await axios.get(apiUrl);
+            //     pool.query(getProductQuery, async (error, res) => {
+            //       if (error) {
+            //         throw new Error('Failed to fetch data');
+            //       }
+            //     })
+            //     const apiUrl = 'http://api.exchangeratesapi.io/v1/latest?access_key=d11c282a5d994f8d18ee4b288f8a81cd';
+            //     const response = await axios.get(apiUrl);
     
-                if (response.status !== 200) {
-                  throw new Error('Failed to fetch data');
-                }
+            //     if (response.status !== 200) {
+            //       throw new Error('Failed to fetch data');
+            //     }
     
-                const data = response.data;
+            //     const data = response.data;
     
-                // Filter rates for the specified countries
-                const newRates = Object.keys(currencyCodes).reduce((acc, country) => {
-                  const currencyCode = currencyCodes[country];
-                  if (data.rates && data.rates[currencyCode]) {
-                    acc[currencyCode] = data.rates[currencyCode];
-                  }
-                  return acc;
-                }, {});
+            //     // Filter rates for the specified countries
+            //     const newRates = Object.keys(currencyCodes).reduce((acc, country) => {
+            //       const currencyCode = currencyCodes[country];
+            //       if (data.rates && data.rates[currencyCode]) {
+            //         acc[currencyCode] = data.rates[currencyCode];
+            //       }
+            //       return acc;
+            //     }, {});
     
                
-                Object.entries(newRates).map(([currencyCode, rate]) => {
-                    const insertQuery = 'INSERT INTO exchange_rates (currency_code, exchange_rate) VALUES (?, ?)';
+            //     Object.entries(newRates).map(([currencyCode, rate]) => {
+            //         const insertQuery = 'INSERT INTO exchange_rates (currency_code, exchange_rate) VALUES (?, ?)';
                     
-                      pool.query(insertQuery, [currencyCode, rate], (err, res) => {
-                        if (err) {
-                          reject(err);
-                        } else {
+            //           pool.query(insertQuery, [currencyCode, rate], (err, res) => {
+            //             if (err) {
+            //               reject(err);
+            //             } else {
                           
-                          resolve(res);
-                        }
-                      });
-                  });
+            //               resolve(res);
+            //             }
+            //           });
+            //       });
       
     
-                resolve(newRates);
-              } catch (error) {
-                reject(error);
-              }
-            }
+            //     resolve(newRates);
+            //   } catch (error) {
+            //     reject(error);
+            //   }
+            // }
           }
         });
       });

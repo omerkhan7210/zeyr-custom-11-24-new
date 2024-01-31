@@ -2,13 +2,14 @@ import express from 'express';
 import multer from 'multer';
 import path from 'path';
 import { InsertProducts, UploadImages,GetProducts, GetAProduct, DuplicateProduct,InsertCategories,
-  GetCategories, UpdateCategory, DeleteCategory, JoinVariationsAndAttributesWithProduct } from '../Controllers/productController.js';
+  GetCategories, UpdateCategory, DeleteCategory, GetMemberShips, UpdateProducts, DeleteProduct, GetTotalCountCat, GenerateNewBarcodes } from '../Controllers/productController.js';
   import {getCurrencyCodeApi} from '../Controllers/currencyMethods.js'
 
 const router = express.Router();
 
 router.post("/products",InsertProducts);
-
+router.put("/products/:productId",UpdateProducts);
+router.delete('/products/:productId', DeleteProduct);
   // Create a storage engine to save the uploaded files to the server's file system
   const storage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -23,20 +24,23 @@ router.post("/products",InsertProducts);
   });
   
   const upload = multer({ storage: storage });
-  
-router.post('/upload-images/:productId',upload.fields([{ name: "featuredImage", maxCount: 1 },{ name: "thumbnailImages", maxCount: 10 },]),UploadImages);
+  router.post('/upload-images/:productId', upload.fields([
+    { name: 'featuredImage', maxCount: 1 },
+    { name: 'thumbnailImages', maxCount: 10 },
+    { name: 'variationImages', maxCount: 10 }, 
+    { name: 'thumb', maxCount: 10 }, // Assuming a maximum of 10 variation images
+  ]), UploadImages);
 
 router.get("/products",GetProducts);
 
 // Endpoint to get product details by productId
 router.get("/products/:productId",GetAProduct);
 
-// Endpoint to get product details by productId
-router.get("/products/join-variations-attributes",JoinVariationsAndAttributesWithProduct);
 
 router.post('/products/:productId/duplicate',DuplicateProduct);
 
 router.get('/categories', GetCategories);
+router.get('/categories/:catname', GetTotalCountCat);
 
 router.post('/categories', express.json(), InsertCategories);
 
@@ -48,5 +52,7 @@ router.delete('/categories/:categoryId', DeleteCategory);
 
 router.post('/post-currency', getCurrencyCodeApi);
 
+router.get('/api/memberships',GetMemberShips);
+router.post('/api/generate-new-barcodes',GenerateNewBarcodes);
     
 export default router;

@@ -2,7 +2,7 @@ import express from 'express';
 import multer from 'multer';
 import path from 'path';
 import { InsertProducts, UploadImages,GetProducts, GetAProduct, DuplicateProduct,InsertCategories,
-  GetCategories, UpdateCategory, DeleteCategory, GetMemberShips, UpdateProducts, DeleteProduct, GetTotalCountCat, GenerateNewBarcodes } from '../Controllers/productController.js';
+  GetCategories, UpdateCategory, DeleteCategory, GetMemberShips, UpdateProducts, DeleteProduct, GetTotalCountCat, GenerateNewBarcodes, GetTotalStockFilter, GetSizesColors } from '../Controllers/productController.js';
   import {getCurrencyCodeApi} from '../Controllers/currencyMethods.js'
 
 const router = express.Router();
@@ -53,6 +53,8 @@ router.delete('/categories/:categoryId', DeleteCategory);
 router.post('/post-currency', getCurrencyCodeApi);
 
 router.get('/api/memberships',GetMemberShips);
+router.get('/get-stock-filter',GetTotalStockFilter);
+router.get('/get-colors-sizes-filter',GetSizesColors);
 router.post('/api/generate-new-barcodes',GenerateNewBarcodes);
     
 export default router;

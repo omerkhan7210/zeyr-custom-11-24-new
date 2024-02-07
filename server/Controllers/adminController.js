@@ -1,6 +1,7 @@
 import { hash, compare } from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import pool from '../Db/database.js';
+import slugify from 'slugify'
 
 // JWT secret key
 const jwtSecret = 'secret-key';
@@ -203,7 +204,6 @@ export const AdminLogin = async (req, res) => {
   };
   
 
-
 // Endpoint to get all categories (including subcategories)
 export const GetTotalCountUsersOrders = async (req, res) => {
   const uid = req.params.uid;
@@ -260,7 +260,6 @@ GROUP BY variationid;
 
 export const BulkEditCats = async (req,res)=>{
   const {productIds,newCategories} = req.body;
-  console.log(req.body)
   productIds.forEach((p)=>{
     const sql = `
     update products set categories = ? where id = ?
@@ -268,6 +267,25 @@ export const BulkEditCats = async (req,res)=>{
     pool.query(sql,[newCategories,p], async (err, results) => {
       if (err) {
         console.error('Error fetching categories:', err);
+        res.status(500).json({ error: 'Internal Server Error' });
+      } 
+  })
+});
+
+  res.status(200).json({message: "success"});
+    
+
+} 
+
+export const BulkEditStatus = async (req,res)=>{
+  const {productIds,newStatus} = req.body;
+  productIds.forEach((p)=>{
+    const sql = `
+    update products set status = ? where id = ?
+   `;
+    pool.query(sql,[newStatus,p], async (err, results) => {
+      if (err) {
+        console.error('Error fetching status:', err);
         res.status(500).json({ error: 'Internal Server Error' });
       } 
   })
@@ -297,5 +315,210 @@ ORDER BY month;
       res.json(results);
     }
   });
+};
+
+export const AddShippingMethods = async (req, res) => {
+  try{
+  const {
+    name,
+    description,
+    price,
+    country
+  } = req.body.nshippingMethods
+ const sql = `
+  insert into shipping_methods(name,description,price,country) values (?,?,?,?);
+ `;
+  // Fix: Use a Promise-based approach or utilize a library like util.promisify
+  await new Promise((resolve, reject) => {
+    pool.query(sql, [name, description, price, country], (err, results) => {
+      if (err) {
+        console.error('Error inserting shipping methods:', err);
+        reject(err);
+      } else {
+        resolve(results);
+      }
+    });
+  });
+
+res.status(200).json({ message: 'Successfully inserted' });
+} catch (error) {
+console.error('Error:', error);
+res.status(500).json({ error: 'Internal Server Error' });
+}
+};
+
+export const EditShippingMethods = async (req, res) => {
+  try{
+    
+  const id = req.params.id
+  const {
+    name,
+    description,
+    price,
+    country
+  } = req.body.nshippingMethods
+ const sql = `
+  update shipping_methods set name = ?,description = ?,price = ?  where id = ?;
+ `;
+  // Fix: Use a Promise-based approach or utilize a library like util.promisify
+  await new Promise((resolve, reject) => {
+    pool.query(sql, [name, description, price, country,id], (err, results) => {
+      if (err) {
+        console.error('Error updating memberships:', err);
+        reject(err);
+      } else {
+        resolve(results);
+      }
+    });
+  });
+
+res.status(200).json({ message: 'Successfully updated' });
+} catch (error) {
+console.error('Error:', error);
+res.status(500).json({ error: 'Internal Server Error' });
+}
+};
+
+export const DeleteShippingMethods = async (req, res) => {
+  try{
+  const id = req.params.id
+ const sql = `
+ delete from shipping_methods where id = ?;
+ `;
+  // Fix: Use a Promise-based approach or utilize a library like util.promisify
+  await new Promise((resolve, reject) => {
+    pool.query(sql, [id], (err, results) => {
+      if (err) {
+        console.error('Error deleting shipping methods:', err);
+        reject(err);
+      } else {
+        resolve(results);
+      }
+    });
+  });
+
+res.status(200).json({ message: 'Successfully deleted' });
+} catch (error) {
+console.error('Error:', error);
+res.status(500).json({ error: 'Internal Server Error' });
+}
+};
+
+
+const generateUniqueSlug = async (productName, attempt = 1) => {
+  // Create the initial slug from the product name
+  let slug = slugify(productName.toLowerCase());
+
+  // Check if a product with the same slug already exists
+  const existingProduct = await pool.query('SELECT * FROM memberships WHERE slug = ?', [slug]);
+
+  if (existingProduct.length > 0) {
+    // If a product with the same slug exists, append the attempt number to the slug
+    slug = `${slug}-${attempt}`;
+    
+    // Recursively call the function with the updated slug and attempt number
+    return generateUniqueSlug(productName, attempt + 1);
+  }
+
+  return slug;
+};
+
+export const AddMemberships = async (req, res) => {
+  try{
+    
+    console.log(req.body)
+    const {
+      name,
+      description,
+      price,
+      apparel_discount,
+      duration_months
+    } = req.body.nmemberships
+
+    
+   // Generate a unique slug for the product name
+   const slug = await generateUniqueSlug(name);
+ const sql = `
+  insert into memberships(name,slug,description,price,apparel_discount,duration_months) values (?,?,?,?,?,?);
+ `;
+  // Fix: Use a Promise-based approach or utilize a library like util.promisify
+  await new Promise((resolve, reject) => {
+    pool.query(sql, [name,slug, description, price, apparel_discount,duration_months], (err, results) => {
+      if (err) {
+        console.error('Error inserting memberships:', err);
+        reject(err);
+      } else {
+        resolve(results);
+      }
+    });
+  });
+
+res.status(200).json({ message: 'Successfully inserted' });
+} catch (error) {
+console.error('Error:', error);
+res.status(500).json({ error: 'Internal Server Error' });
+}
+};
+
+export const EditMemberships = async (req, res) => {
+  try{
+    
+  const id = req.params.id
+  const {
+    name,
+    description,
+    price,
+    apparel_discount,
+    duration_months
+  } = req.body.nmemberships
+
+   // Generate a unique slug for the product name
+   const slug = await generateUniqueSlug(name);
+
+ const sql = `
+  update memberships set name = ?,slug = ? ,description = ?,price = ? , apparel_discount = ?,duration_months=? where membership_id = ?;
+ `;
+  // Fix: Use a Promise-based approach or utilize a library like util.promisify
+  await new Promise((resolve, reject) => {
+    pool.query(sql, [name,slug, description, price, apparel_discount,duration_months,id], (err, results) => {
+      if (err) {
+        console.error('Error inserting shipping methods:', err);
+        reject(err);
+      } else {
+        resolve(results);
+      }
+    });
+  });
+
+res.status(200).json({ message: 'Successfully updated' });
+} catch (error) {
+console.error('Error:', error);
+res.status(500).json({ error: 'Internal Server Error' });
+}
+};
+
+export const DeleteMemberships = async (req, res) => {
+  try{
+  const id = req.params.id
+ const sql = `
+ delete from memberships where membership_id = ?;
+ `;
+  // Fix: Use a Promise-based approach or utilize a library like util.promisify
+  await new Promise((resolve, reject) => {
+    pool.query(sql, [id], (err, results) => {
+      if (err) {
+        console.error('Error deleting memberships:', err);
+        reject(err);
+      } else {
+        resolve(results);
+      }
+    });
+  });
+
+res.status(200).json({ message: 'Successfully deleted' });
+} catch (error) {
+console.error('Error:', error);
+res.status(500).json({ error: 'Internal Server Error' });
+}
 };
 

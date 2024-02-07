@@ -1,6 +1,6 @@
 
 import express from 'express';
-import { AdminLogin, BulkEditCats, GetOrderDetails, GetTotalSales, GetTotalStock, SelectAddressesForUser, SelectAllUsers, SelectCompletedOrderAdmin, SelectCompletedOrderForUser } from '../Controllers/adminController.js';
+import { AddMemberships, AddShippingMethods, AdminLogin, BulkEditCats, BulkEditStatus, DeleteMemberships, DeleteShippingMethods, EditMemberships, EditShippingMethods, GetOrderDetails, GetTotalSales, GetTotalStock, SelectAddressesForUser, SelectAllUsers, SelectCompletedOrderAdmin, SelectCompletedOrderForUser } from '../Controllers/adminController.js';
 
 const router = express.Router();
 
@@ -13,5 +13,12 @@ router.get('/products-sales/:pid',GetTotalSales);
 router.get('/products-stock/:pid',GetTotalStock);
 router.get('/orders-details',GetOrderDetails);
 router.post('/bulkEdit',BulkEditCats)
+router.post('/bulkEditStatus',BulkEditStatus)
+router.post('/add-shipping-methods',AddShippingMethods)
+router.put('/edit-shipping-methods/:id',EditShippingMethods)
+router.delete('/delete-shipping-methods/:id',DeleteShippingMethods)
+router.post('/add-memberships',AddMemberships)
+router.put('/edit-memberships/:id',EditMemberships)
+router.delete('/delete-memberships/:id',DeleteMemberships)
 
 export default router;

@@ -297,39 +297,116 @@ const sendOrderConfirmationEmail = async (email, subj, orderData,productData,use
   const convertedTPriceS = orderData.total_price_with_shipping;
 // Format the order data into HTML
 const formattedOrderHTML = `
-<p>Thank you for your order!</p>
-<p>Product Details:</p>
-<ul style="list-style-type:none">
-<li>Name: ${productData.name}</li>
-  <li>
-  <li>Price: ${convertedPrice}</li>
-  <li>
-  <li>Category: ${productData.categories}</li>
-  <li>
-  <li>SKU: ${productData.sku}</li>
-  <li>
-  </ul>
-<p>Order Details:</p>
-<ul style="list-style-type:none">
-  <li>Order ID: ${orderData.order_id}</li>
-  Billing Address: ${userData.addressLine1}
-  <br>
-  ${userData.addressLine2},
-  ${userData.city},
-  ${userData.country}
-  </li>
-  <li>Total Price: $${orderData.total_price}</li>
-  <li>Shipping Method: ${shippingData.name},${shippingData.description}</li>
-  <li>Shipping Price: ${convertedTPrice}</li>
-  <li>Total Price with Shipping: ${convertedTPriceS}</li>
-  <li>Order Date: ${new Date(orderData.order_date).toLocaleString()}</li>
-</ul>
-<p>Your Details:</p>
-<ul style="list-style-type:none">
-<li>Your Email: ${userData.email}</li>
-  <li>
-  <li>Phone: ${userData.phone}</li>
-  </ul>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order Confirmation</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f4f4f4;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+
+    th, td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: left;
+    }
+
+    th {
+      background-color: #f2f2f2;
+    }
+
+    p {
+      margin-bottom: 10px;
+      font-size: 16px;
+      font-weight: bold;
+    }
+th{
+background:black;
+color:white;
+}
+
+  </style>
+</head>
+<body>
+  <p style="text-align:center;font-size:17px">Thank you for your order!</p>
+
+  <p>Product Details:</p>
+  <table>
+    <tr>
+      <th>Name</th>
+      <th>Price</th>
+      <th>Category</th>
+      <th>SKU</th>
+    </tr>
+    <tr>
+      <td>${productData.name}</td>
+      <td>${convertedPrice}</td>
+      <td>${productData.categories}</td>
+      <td>${productData.sku}</td>
+    </tr>
+  </table>
+
+  <p>Order Details:</p>
+  <table>
+    <tr>
+      <th>Order ID</th>
+      <th>Total Price</th>
+      <th>Order Date</th>
+    </tr>
+    <tr>
+      <td>${orderData.order_id}</td>
+    
+      <td>${orderData.total_price}</td>
+      <td>${new Date(orderData.order_date).toLocaleString()}</td>
+    </tr>
+  </table>
+
+<table>
+    <tr>
+      <th>Shipping Method</th>
+      <th>Shipping Price</th>
+      <th>Total Price with Shipping</th>
+    </tr>
+    <tr>
+      <td>${shippingData.name}, ${shippingData.description}</td>
+      <td>${convertedTPrice}</td>
+      <td>${convertedTPriceS}</td>
+    </tr>
+  </table>
+
+
+  <p>Your Details:</p>
+  <table>
+    <tr>
+      <th>Your Email</th>
+      <th>Phone</th>
+      <th>Billing Address</th>
+    </tr>
+    <tr>
+      <td>${userData.email}</td>
+      <td>${userData.phone}</td>
+  <td>
+        ${userData.addressLine1} <br>
+        ${userData.addressLine2},<br>
+        ${userData.city},<br>
+       ${userData.country}
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
 
   
 `;
@@ -345,7 +422,7 @@ const formattedOrderHTML = `
       service: 'gmail',
       auth: {
         user: 'omerfarooqkhan7210@gmail.com', // Your Gmail email address
-        pass: 'eaermqekncdsjnsn', // Your Gmail password or app-specific password
+        pass: 'mpzi hzzt qxiu zyzu', // Your Gmail password or app-specific password
       },
     });
   
@@ -364,10 +441,411 @@ function sendUserInfoToEmail(email,lname,fname,password){
    to: email,
    subject: "Thank you for creating a ZEYR FINERI account",
    html: `
-   <p>YOUR ACCOUNT DETAILS</p>
-   <p>Your Name: ${fname} ${lname}</p>
-   <p>Your Email: ${email}</p>
-   <p>Your Password ${password}</p>
+   <!doctype html>
+   <html>
+     <head>
+       <meta name="viewport" content="width=device-width" />
+       <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+      <title>Welcome to Our Platform</title>
+      <style>
+      /* -------------------------------------
+          GLOBAL RESETS
+      ------------------------------------- */
+      
+      /*All the styling goes here*/
+      
+      img {
+        border: none;
+        -ms-interpolation-mode: bicubic;
+        max-width: 100%; 
+      }
+
+      body {
+        background-color: #eaebed;
+        font-family: sans-serif;
+        -webkit-font-smoothing: antialiased;
+        font-size: 14px;
+        line-height: 1.4;
+        margin: 0;
+        padding: 0;
+        -ms-text-size-adjust: 100%;
+        -webkit-text-size-adjust: 100%; 
+      }
+
+      table {
+        border-collapse: separate;
+        mso-table-lspace: 0pt;
+        mso-table-rspace: 0pt;
+        min-width: 100%;
+        width: 100%; }
+        table td {
+          font-family: sans-serif;
+          font-size: 14px;
+          vertical-align: top; 
+      }
+
+      /* -------------------------------------
+          BODY & CONTAINER
+      ------------------------------------- */
+
+      .body {
+        background-color: #eaebed;
+        width: 100%; 
+      }
+
+      /* Set a max-width, and make it display as block so it will automatically stretch to that width, but will also shrink down on a phone or something */
+      .container {
+        display: block;
+        Margin: 0 auto !important;
+        /* makes it centered */
+        max-width: 580px;
+        padding: 10px;
+        width: 580px; 
+      }
+
+      /* This should also be a block element, so that it will fill 100% of the .container */
+      .content {
+        box-sizing: border-box;
+        display: block;
+        Margin: 0 auto;
+        max-width: 580px;
+        padding: 10px; 
+      }
+
+      /* -------------------------------------
+          HEADER, FOOTER, MAIN
+      ------------------------------------- */
+      .main {
+        background: #ffffff;
+        border-radius: 3px;
+        width: 100%; 
+      }
+
+      .header {
+        padding: 20px 0;
+      }
+
+      .wrapper {
+        box-sizing: border-box;
+        padding: 20px; 
+      }
+
+      .content-block {
+        padding-bottom: 10px;
+        padding-top: 10px;
+      }
+
+      .footer {
+        clear: both;
+        Margin-top: 10px;
+        text-align: center;
+        width: 100%; 
+      }
+        .footer td,
+        .footer p,
+        .footer span,
+        .footer a {
+          color: #9a9ea6;
+          font-size: 12px;
+          text-align: center; 
+      }
+
+      /* -------------------------------------
+          TYPOGRAPHY
+      ------------------------------------- */
+      h1,
+      h2,
+      h3,
+      h4 {
+        color: #06090f;
+        font-family: sans-serif;
+        font-weight: 400;
+        line-height: 1.4;
+        margin: 0;
+        margin-bottom: 30px; 
+      }
+
+      h1 {
+        font-size: 35px;
+        font-weight: 300;
+        text-align: center;
+        text-transform: capitalize; 
+      }
+
+      p,
+      ul,
+      ol {
+        font-family: sans-serif;
+        font-size: 14px;
+        font-weight: normal;
+        margin: 0;
+        margin-bottom: 15px; 
+      }
+        p li,
+        ul li,
+        ol li {
+          list-style-position: inside;
+          margin-left: 5px; 
+      }
+
+      a {
+        color: black;
+        text-decoration: underline; 
+      }
+
+      /* -------------------------------------
+          BUTTONS
+      ------------------------------------- */
+      .btn {
+        box-sizing: border-box;
+        min-width: 100%;
+        width: 100%; }
+        .btn > tbody > tr > td {
+          padding-bottom: 15px; }
+        .btn table {
+          min-width: auto;
+          width: auto; 
+      }
+        .btn table td {
+          background-color: #ffffff;
+          border-radius: 5px;
+          text-align: center; 
+      }
+        .btn a {
+          background-color: #ffffff;
+          border: solid 1px #ec0867;
+          border-radius: 5px;
+          box-sizing: border-box;
+          color: black;
+          cursor: pointer;
+          display: inline-block;
+          font-size: 14px;
+          font-weight: bold;
+          margin: 0;
+          padding: 12px 25px;
+          text-decoration: none;
+          text-transform: capitalize; 
+      }
+
+      .btn-primary table td {
+        background-color: black; 
+      }
+
+      .btn-primary a {
+        background-color:black ;
+        border-color:black ;
+        color: #ffffff; 
+      }
+
+      /* -------------------------------------
+          OTHER STYLES THAT MIGHT BE USEFUL
+      ------------------------------------- */
+      .last {
+        margin-bottom: 0; 
+      }
+
+      .first {
+        margin-top: 0; 
+      }
+
+      .align-center {
+        text-align: center; 
+      }
+
+      .align-right {
+        text-align: right; 
+      }
+
+      .align-left {
+        text-align: left; 
+      }
+
+      .clear {
+        clear: both; 
+      }
+
+      .mt0 {
+        margin-top: 0; 
+      }
+
+      .mb0 {
+        margin-bottom: 0; 
+      }
+
+      .preheader {
+        color: transparent;
+        display: none;
+        height: 0;
+        max-height: 0;
+        max-width: 0;
+        opacity: 0;
+        overflow: hidden;
+        mso-hide: all;
+        visibility: hidden;
+        width: 0; 
+      }
+
+      .powered-by a {
+        text-decoration: none; 
+      }
+
+      hr {
+        border: 0;
+        border-bottom: 1px solid #f6f6f6;
+        Margin: 20px 0; 
+      }
+
+      /* -------------------------------------
+          RESPONSIVE AND MOBILE FRIENDLY STYLES
+      ------------------------------------- */
+      @media only screen and (max-width: 620px) {
+        table[class=body] h1 {
+          font-size: 28px !important;
+          margin-bottom: 10px !important; 
+        }
+        table[class=body] p,
+        table[class=body] ul,
+        table[class=body] ol,
+        table[class=body] td,
+        table[class=body] span,
+        table[class=body] a {
+          font-size: 16px !important; 
+        }
+        table[class=body] .wrapper,
+        table[class=body] .article {
+          padding: 10px !important; 
+        }
+        table[class=body] .content {
+          padding: 0 !important; 
+        }
+        table[class=body] .container {
+          padding: 0 !important;
+          width: 100% !important; 
+        }
+        table[class=body] .main {
+          border-left-width: 0 !important;
+          border-radius: 0 !important;
+          border-right-width: 0 !important; 
+        }
+        table[class=body] .btn table {
+          width: 100% !important; 
+        }
+        table[class=body] .btn a {
+          width: 100% !important; 
+        }
+        table[class=body] .img-responsive {
+          height: auto !important;
+          max-width: 100% !important;
+          width: auto !important; 
+        }
+      }
+
+      /* -------------------------------------
+          PRESERVE THESE STYLES IN THE HEAD
+      ------------------------------------- */
+      @media all {
+        .ExternalClass {
+          width: 100%; 
+        }
+        .ExternalClass,
+        .ExternalClass p,
+        .ExternalClass span,
+        .ExternalClass font,
+        .ExternalClass td,
+        .ExternalClass div {
+          line-height: 100%; 
+        }
+        .apple-link a {
+          color: inherit !important;
+          font-family: inherit !important;
+          font-size: inherit !important;
+          font-weight: inherit !important;
+          line-height: inherit !important;
+          text-decoration: none !important; 
+        }
+        .btn-primary table td:hover {
+          background-color: #d5075d !important; 
+        }
+        .btn-primary a:hover {
+          background-color: #d5075d !important;
+          border-color: #d5075d !important; 
+        } 
+      }
+      </style>
+     </head>
+     <body class="">
+       <table role="presentation" border="0" cellpadding="0" cellspacing="0" class="body">
+         <tr>
+           <td>&nbsp;</td>
+           <td class="container">
+             <div class="header">
+               <table role="presentation" border="0" cellpadding="0" cellspacing="0">
+                 <tr>
+                   <td class="align-center">
+                     <a href="https://zeyr.thealamgroup.com">
+                     <img src="https://zeyr.thealamgroup.com/cdn/shop/files/logo_be4041d5-a81e-4d1e-a43d-29b0b0d52cbe.png" height="40" alt="ZEYRFINERI"></a>
+                   </td>
+                 </tr>
+               </table>
+             </div>
+             <div class="content">
+   
+               <!-- START CENTERED WHITE CONTAINER -->
+              <table role="presentation" class="main">
+   
+                 <!-- START MAIN CONTENT AREA -->
+                 <tr>
+                   <td class="wrapper">
+                     <table role="presentation" border="0" cellpadding="0" cellspacing="0">
+                       <tr>
+                         <td>
+                           <p>Welcome to <b>ZERY FINERI!</b></p>
+   
+     <p>Thank you ${fname} ${lname} for creating an account. Below are your account details:</p>
+   
+     <p>Your Email: ${email}</p>
+     <p>Your Password: ${password}</p>
+   
+     <p>We are excited to have you as part of our community. With your account, you can enjoy various features and benefits. Feel free to explore our platform and discover what we have to offer.</p>
+   
+     <p>If you have any questions or need assistance, please don't hesitate to reach out to our support team. Enjoy your experience!</p>
+   
+     <p>Best regards,<br>
+   ZEYR FINERI</p> <table role="presentation" border="0" cellpadding="0" cellspacing="0" class="btn btn-primary">
+                            
+                           </table>
+                           </td>
+                       </tr>
+                     </table>
+                   </td>
+                 </tr>
+   
+               <!-- END MAIN CONTENT AREA -->
+               </table>
+   
+               <!-- START FOOTER -->
+               <div class="footer">
+                 <table role="presentation" border="0" cellpadding="0" cellspacing="0">
+                   <tr>
+                     <td class="content-block">
+                       <span class="apple-link">Company Inc, 3 Abbey Road, San Francisco CA 94102</span>
+                       <br> Don't like these emails? <a href="https://postdrop.io">Unsubscribe</a>.
+                     </td>
+                   </tr>
+                  
+                 </table>
+               </div>
+               <!-- END FOOTER -->
+   
+             <!-- END CENTERED WHITE CONTAINER -->
+             </div>
+           </td>
+           <td>&nbsp;</td>
+         </tr>
+       </table>
+     </body>
+   </html>
+   
    `,
  };
 
@@ -376,7 +854,7 @@ const transporter = nodemailer.createTransport({
 service: 'gmail',
 auth: {
 user: 'omerfarooqkhan7210@gmail.com', // Your Gmail email address
-pass: 'eaermqekncdsjnsn', // Your Gmail password or app-specific password
+pass: 'mpzi hzzt qxiu zyzu', // Your Gmail password or app-specific password
 },
 });
 
@@ -417,6 +895,10 @@ export const CreateCheckoutAddress = async (req, res) => {
           }
     
           if (checkAddressResults.length > 0) {
+             // Check if the address already exists
+             pool.query('update addresses set isDefault = 0 where user_id = ?',[userId])
+    
+        pool.query('update addresses set isDefault = 1 where id = ?',[checkAddressResults[0].id])
             
     const token = jwt.sign({ email }, jwtSecret, { expiresIn: '24h' });
 
@@ -454,7 +936,9 @@ export const CreateCheckoutAddress = async (req, res) => {
 };
 
 const insertAddressAndRespond = (userId, email, firstName, lastName, company, addressLine1, addressLine2, city, country, zipCode, phone, res) => {
-  const addressQuery = 'INSERT INTO addresses (user_id, email, firstName, lastName, company, addressLine1, addressLine2, city, country, zipCode, phone) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
+
+  pool.query('update addresses set isDefault = 0 where email = ?',[email])
+  const addressQuery = 'INSERT INTO addresses (user_id, email, firstName, lastName, company, addressLine1, addressLine2, city, country, zipCode, phone,isDefault) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,1)';
   pool.query(addressQuery, [userId, email, firstName, lastName, company, addressLine1, addressLine2, city, country, zipCode, phone], (addressError, addressResults) => {
     if (addressError) {
       console.error(addressError);
@@ -494,9 +978,7 @@ const insertAddressAndRespond = (userId, email, firstName, lastName, company, ad
       }else{
        email = decoded.email
       }
-      // Assuming you have a 'addresses' table in your MySQL database
-      // Replace this query with your own logic to fetch the user's addresses
-      const query = 'SELECT * FROM addresses WHERE email = ?';
+      const query = 'SELECT * FROM addresses WHERE email = ? and isDefault = 1';
       pool.query(query, [email, decoded.firstName], (error, results) => {
         if (error) {
           console.error(error);
@@ -513,6 +995,37 @@ const insertAddressAndRespond = (userId, email, firstName, lastName, company, ad
       res.status(401).json({ message: 'Invalid token' });
     }
   };
+
+    // Route for fetching addresses for the logged-in user
+    export const RetrieveCheckoutAddressUser = async (req, res) => {
+      try {
+  
+        const token = req.headers.authorization.split(' ')[1]; // Extract the JWT token from the authorization header
+        // Verify the JWT token and extract the user information
+        const decoded = jwt.verify(token, jwtSecret);
+        let email = ''
+        if(decoded.userEmail){
+         email = decoded.userEmail
+        }else{
+         email = decoded.email
+        }
+        const query = 'SELECT * FROM addresses WHERE email = ?';
+        pool.query(query, [email, decoded.firstName], (error, results) => {
+          if (error) {
+            console.error(error);
+            return res.status(500).json({ message: 'Server error' });
+          }
+    
+          res.status(200).json({ addresses: results });
+        });
+      } catch (error) {
+              // Check if the error is due to a malformed JWT
+      if (error instanceof jwt.JsonWebTokenError) {
+        return res.status(401).json({ message: 'Malformed JWT' });
+      }
+        res.status(401).json({ message: 'Invalid token' });
+      }
+    };
  
   // Route for fetching addresses for the logged-in user
   export const RetrieveCheckoutAddressBId = async (req, res) => {

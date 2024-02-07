@@ -160,13 +160,12 @@ const BarcodeImages =  async (req, res) => {
           console.error(updateError);
           return res.status(500).json({ message: 'Server error' });
         }
-        console.log(updateResults)
-  
+       
         // Get the address data from the request body
         const { firstName, lastName, company, addressLine1, addressLine2, city, country, zipCode, phone } = req.body;
   
         // Insert the new address with default set to 1
-        const insertQuery = 'INSERT INTO addresses (user_id, email, firstName, lastName, company, addressLine1, addressLine2, city, country, zipCode, phone, isDefault) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)';
+        const insertQuery = 'INSERT INTO addresses (user_id, email, firstName, lastName, company, addressLine1, addressLine2, city, country, zipCode, phone, isDefault) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)';
         pool.query(insertQuery, [userId, email, firstName, lastName, company, addressLine1, addressLine2, city, country, zipCode, phone], (error, results) => {
           if (error) {
             console.error(error);
@@ -185,7 +184,7 @@ const BarcodeImages =  async (req, res) => {
             country,
             zipCode,
             phone,
-            isDefault: 1
+            isDefault
           };
   
           res.status(201).json({ message: 'Address added successfully', address: newAddress });

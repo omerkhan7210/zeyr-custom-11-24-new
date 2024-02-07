@@ -3,10 +3,19 @@ import pool from '../Db/database.js';
 import {storedCurrencyExchange} from './currencyMethods.js'
 import bwipjs from 'bwip-js'; // Import the barcode library
 import fs from 'fs';
+import slugify from 'slugify'
 
 const getProductDetails = (productId) => {
   return new Promise((resolve, reject) => {
-    const getProductQuery = "SELECT * FROM products WHERE id = ?";
+    let getProductQuery;
+
+    if (!isNaN(productId)) {
+      // If productId is a number, use the query for id
+      getProductQuery = "SELECT * FROM products WHERE id = ?";
+    } else {
+      // If productId is a string, use the query for slug
+      getProductQuery = "SELECT * FROM products WHERE slug = ?";
+    }
     pool.query(getProductQuery, [productId], (error, productResult) => {
       if (error) {
         reject(error);
@@ -15,7 +24,7 @@ const getProductDetails = (productId) => {
 
       if (productResult.length === 0) {
         // Product not found in products table, fetch from memberships table
-        const getMembershipQuery = "SELECT * FROM memberships WHERE membership_id = ?";
+        const getMembershipQuery = "SELECT * FROM memberships WHERE slug = ?";
         pool.query(getMembershipQuery, [productId], (membershipError, membershipResult) => {
           if (membershipError) {
             reject(membershipError);
@@ -24,7 +33,7 @@ const getProductDetails = (productId) => {
 
           if (membershipResult.length === 0) {
             // Product not found in memberships table either
-            reject("Product not found");
+            reject("Product not found hello");
             return;
           }
 
@@ -38,23 +47,25 @@ const getProductDetails = (productId) => {
       }
     });
   });
-};const getCompleteProductData = async (productId) => {
+};
+
+const getCompleteProductData = async (productId) => {
   try {
     const product = await getProductDetails(productId);
 
     // Assuming you have a pool object defined earlier
-    const getAttributesTypeQuery = "SELECT DISTINCT variationid, attributeprice, attributestock, attributeimg FROM `attributes` WHERE productId = ?";
+    const getAttributesTypeQuery = "SELECT DISTINCT variationid, attributeprice, attributestock FROM `attributes` WHERE productId = ?";
 
     const varResult = await new Promise((resolve, reject) => {
-      pool.query(getAttributesTypeQuery, [productId], async (error, variations) => {
+      pool.query(getAttributesTypeQuery, [product.id], async (error, variations) => {
         if (error) {
           reject(error);
         } else {
           try {
             const variationsWithAttributeValues = await Promise.all(variations.map(async (variation) => {
-              const getAttributeValuesQuery = "SELECT id,attributeValue, attributeType FROM `attributes` WHERE productId = ? AND variationid = ?";
+              const getAttributeValuesQuery = "SELECT id,attributeValue, attributeType,attributeimg FROM `attributes` WHERE productId = ? AND variationid = ?";
               const attributeValues = await new Promise((resolve, reject) => {
-                pool.query(getAttributeValuesQuery, [productId, variation.variationid], (error, attresults) => {
+                pool.query(getAttributeValuesQuery, [product.id, variation.variationid], (error, attresults) => {
                   if (error) {
                     reject(error);
                   } else {
@@ -85,12 +96,31 @@ const getProductDetails = (productId) => {
   }
 };
 
+const generateUniqueSlug = async (productName, attempt = 1) => {
+  // Create the initial slug from the product name
+  let slug = slugify(productName.toLowerCase());
+
+  // Check if a product with the same slug already exists
+  const existingProduct = await pool.query('SELECT * FROM products WHERE slug = ?', [slug]);
+
+  if (existingProduct.length > 0) {
+    // If a product with the same slug exists, append the attempt number to the slug
+    slug = `${slug}-${attempt}`;
+    
+    // Recursively call the function with the updated slug and attempt number
+    return generateUniqueSlug(productName, attempt + 1);
+  }
+
+  return slug;
+};
+
 
 export const InsertProducts = async (req, res) => {
   try {
     const {
       name,
       price,
+      salePrice,
       categories,
       sku,
       isOnSale,
@@ -102,10 +132,15 @@ export const InsertProducts = async (req, res) => {
       variations, // Assuming variations are sent in the request body
     } = req.body;
 
+     // Generate a unique slug for the product name
+     const slug = await generateUniqueSlug(name);
+
     // Save product data to the database
     const productData = {
       name,
+      slug,
       price,
+      salePrice,
       categories,
       sku,
       isOnSale: Boolean(isOnSale),
@@ -123,6 +158,7 @@ export const InsertProducts = async (req, res) => {
         return res.status(500).json({ message: "Failed to create product" });
       }
 
+      
        const productId = productResult.insertId;
  
       // Generate barcode image
@@ -180,6 +216,7 @@ export const UpdateProducts = async (req, res) => {
     const {
       name,
       price,
+      salePrice,
       categories,
       sku,
       isOnSale,
@@ -191,10 +228,17 @@ export const UpdateProducts = async (req, res) => {
       variations, // Assuming variations are sent in the request body
     } = req.body;
 
+    
+     // Generate a unique slug for the product name
+     const slug = await generateUniqueSlug(name);
+
+
     // Save product data to the database
     const productData = {
       name,
+      slug,
       price,
+      salePrice,
       categories,
       sku,
       isOnSale: Boolean(isOnSale),
@@ -242,7 +286,6 @@ nonMatchingVariations.forEach(async (nm) => {
     nm.attributeValues.map(async(av)=>{
       await pool.query(insertQuery, [nm.variationid,nm.productId, av.attributeType, av.attributeValue,nm.attributeprice,nm.attributestock,nm.attributeimg]);
     })
-   console.log('Inserted attribute into database');
   } catch (error) {
     console.error('Error inserting attribute into database:', error.message);
   } 
@@ -281,7 +324,14 @@ export const DuplicateProduct = async (req, res) => {
 
       // Duplicate the product
       const duplicatedProductData = { ...productData[0] };
+      
+
       duplicatedProductData.name = `${duplicatedProductData.name} (copy)`;
+      
+     // Generate a unique slug for the product name
+     const slug = await generateUniqueSlug(duplicatedProductData.name);
+
+     duplicatedProductData.slug  = slug;
       delete duplicatedProductData.id;
 
       // Save the duplicated product to the database
@@ -437,7 +487,6 @@ export const DeleteProduct = (req, res) => {
               }
             );
           }
-          console.log(req.body)
           // Save image filenames to the database or file system
           if (req.files["variationImages"]) {
             const featuredImageFilename = req.files["variationImages"][0].filename;
@@ -454,7 +503,6 @@ export const DeleteProduct = (req, res) => {
               }
             );
           }
-          console.log(productId)
            // Save image filenames to the database or file system
            if (req.files["thumb"]) {
            
@@ -482,7 +530,7 @@ export const DeleteProduct = (req, res) => {
 export const GetProducts = async (req, res) => {
   try {
     const query = `
-      SELECT id
+      SELECT slug
       FROM products ;
     `;
 
@@ -501,11 +549,11 @@ export const GetProducts = async (req, res) => {
     }
      // Use Promise.all to handle asynchronous operations in parallel
      const productPromises = productDetails.map(async (p) => {
-      return getCompleteProductData(p.id);
+      return getCompleteProductData(p.slug);
     });
 
     const productsWithVariations = await Promise.all(productPromises);
-
+    
 
     res.status(200).json(productsWithVariations);
   } catch (err) {
@@ -741,6 +789,30 @@ export const GetMemberShips = (req, res) => {
     if (err) {
       console.error('Error fetching memberships:', err);
       res.status(500).json({ error: 'Error fetching memberships' });
+    } else {
+      res.json(results);
+    }
+  });
+};
+
+// Fetch memberships
+export const GetTotalStockFilter = (req, res) => {
+  pool.query('SELECT productId,sum(attributestock) as totalstock from attributes a,products p  where p.id = a.productId and p.status = "published" group by productId', (err, results) => {
+    if (err) {
+      console.error('Error fetching stock:', err);
+      res.status(500).json({ error: 'Error fetching stock' });
+    } else {
+      res.json(results);
+    }
+  });
+};
+
+// Fetch memberships
+export const GetSizesColors = (req, res) => {
+  pool.query('SELECT productId,attributeValue,attributeType from attributes a,products p  where p.id = a.productId and p.status = "published"', (err, results) => {
+    if (err) {
+      console.error('Error fetching sizes and colors:', err);
+      res.status(500).json({ error: 'Error fetching sizes and colors' });
     } else {
       res.json(results);
     }
